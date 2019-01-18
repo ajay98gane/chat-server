@@ -1,4 +1,4 @@
-package messenger;
+//package messenger;
 import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -14,12 +14,10 @@ public class server
 	public static Map<String,Map<String,Integer>> not=new HashMap<>();
 	
 	private static PrintStream outa=null;
-	private static boolean n=true;
 	public static void main(String[] args) throws IOException
 	{
 		ss=new ServerSocket(7878);
 		System.out.println("searching for client");
-		System.out.println("hfgd");
 		while(true)
 		{	
 			
@@ -72,13 +70,14 @@ class clients extends Thread
 	private boolean a=true;
 	private static Map<String,Map<String,Integer>> b;
 	private static String notify="notify.txt";
-	private  static BufferedWriter fo;
+	private static BufferedWriter fo;
 	private static BufferedReader fi;
 	private static File fileName;
 	private static Map<String,Integer> notif=new HashMap<>();
-	private  boolean tempName=false;
+	private boolean tempName=false;
 	private static	int count=1;
-	private  String temporaryName="";
+	private String temporaryName="";
+	private String status="online";
 	
 
 	clients(Socket s,Map<String,clients> threads,String clientName)
@@ -101,7 +100,7 @@ class clients extends Thread
 	 void availableClients(Map<String,clients> broadcast)throws FileNotFoundException,IOException,ClassNotFoundException
 	{
 		 b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
-			if(b!=null)server.not=b;
+		if(b!=null)server.not=b;
 		 for(clients a:usere.values())
 		{
 			 
@@ -114,15 +113,15 @@ class clients extends Thread
 					{
 							if(server.not.get(a.getClientName())==null)
 							{
-								a.out.println("->"+b.getClientName()+"-(0)");
+								a.out.println("->"+b.getClientName()+"-(0)-("+b.status+")");
 							}
 							else if(server.not.get(a.getClientName()).get(b.getClientName())==null)
 							{
-								a.out.println("->"+b.getClientName()+"-(0)");
+								a.out.println("->"+b.getClientName()+"-(0)-("+b.status+")");
 							}
 							else
 							{	
-								a.out.println("->"+b.getClientName()+"-("+server.not.get(a.getClientName()).get(b.getClientName())+")");
+								a.out.println("->"+b.getClientName()+"-("+server.not.get(a.getClientName()).get(b.getClientName())+")-"+b.status+")");
 	
 							}
 					
@@ -192,9 +191,8 @@ class clients extends Thread
 	           		 words[0]=words[0].trim();
 	           		if (!words[1].isEmpty()) 
 	           		{
-	           			
-	           				if(usere.containsKey(words[1]))
-	           				{
+	           			if(usere.containsKey(words[1]))
+	           			{
 	           					server.not.put("@"+words[1], notif);
 	           					server.not.put(clientName,notif);
 	           					server.not.get(clientName).put("@"+words[1],0);
@@ -220,8 +218,6 @@ class clients extends Thread
 	        							if(m.group().length()!=0)
 	        							{
 	        								this.out.println(m.group().trim());
-	        								
-
 	        							}
 	        						}
 	        					}
@@ -252,7 +248,6 @@ class clients extends Thread
 						           			if(this.getClientName().equals(usere.get(words[1]).temporaryName))
 						           			{
 						           				usere.get(words[1]).out.println(this.getClientName()+"@"+words[1]+": "+lin+" <- ");
-						           				
 						           			}
 						           			else
 						           			{
@@ -269,7 +264,6 @@ class clients extends Thread
 													saveFile(server.not,notify);
 
 												}
-						           				
 						           			}
 					           			}
 					           			synchronized(this)
@@ -281,9 +275,7 @@ class clients extends Thread
 						           						           		
 					           				
 					           	}
-					        
-
-			           	}
+	           				}
 			        }
 			    }
 			}
@@ -305,11 +297,17 @@ class clients extends Thread
 	    	   
 	    	   this.out.println("logging out");
 	    	   stap();
+	    	   status="offline";
+	    	   synchronized(this)
+	           	{
+	           		availableClients(usere);
+	           	}
 	    	   
 	    	   in.close();
 	    	   out.close();
 	    	   s.close();
 	    	   this.stop();
+	    	   
 	       }
 	       else 
 	       {
