@@ -45,6 +45,11 @@ class client implements Runnable
 			{
 				System.out.print("\033[H\033[2J");
 			}
+			if(send.equals("quit"))
+			{
+				out.println(send);
+				break;
+			}
 			out.println(send);
 		}
 	}
@@ -62,9 +67,13 @@ class client implements Runnable
 				{
 				System.out.print("\033[H\033[2J");
 				}
+				if(recieve.equals("quit"))
+				{
+					break;
+				}
 
-						System.out.println(recieve);
-					}
+				System.out.println(recieve);
+			}
 				
 			
 		}catch(IOException r){}

@@ -1,4 +1,5 @@
 //package messenger;
+//something to end the client using quit
 import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -121,13 +122,13 @@ class clients extends Thread
 							}
 							else
 							{	
-								a.out.println("->"+b.getClientName()+"-("+server.not.get(a.getClientName()).get(b.getClientName())+")-"+b.status+")");
+								a.out.println("->"+b.getClientName()+"-("+server.not.get(a.getClientName()).get(b.getClientName())+")-("+b.status+")");
 	
 							}
 					
 					}
 					
-				}
+				}//a.out.println("->"+);
 			 }
 		}
 
@@ -298,6 +299,8 @@ class clients extends Thread
 	    	   this.out.println("logging out");
 	    	   stap();
 	    	   status="offline";
+	    	   tempName=true;
+	    	   this.out.println(line);
 	    	   synchronized(this)
 	           	{
 	           		availableClients(usere);
