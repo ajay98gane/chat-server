@@ -13,6 +13,8 @@ public class server
 	private static Map<String,clients> usere=new HashMap<>();
 	private static Map<String,String> check=new HashMap<>();
 	public static Map<String,Map<String,Integer>> not=new HashMap<>();
+	public static Map<String,Integer> broadcastNotif=new HashMap<>();
+
 	
 	private static PrintStream outa=null;
 	public static void main(String[] args) throws IOException
@@ -51,6 +53,7 @@ public class server
 			check.put(userName, password);	
 			clients sa=new clients(s,usere,userName);
 			usere.put(userName,sa);
+			broadcastNotif.put("@"+userName,0);
 			sa.start();
 			
 			
@@ -79,6 +82,8 @@ class clients extends Thread
 	private static	int count=1;
 	private String temporaryName="";
 	private String status="online";
+	//private  int server.broadcastNotif=0;
+	
 	
 
 	clients(Socket s,Map<String,clients> threads,String clientName)
@@ -128,7 +133,11 @@ class clients extends Thread
 					
 					}
 					
-				}//a.out.println("->"+);
+				}
+					
+					a.out.println("->@broadcast-("+server.broadcastNotif.get(a.clientName)+")");
+
+				
 			 }
 		}
 
@@ -171,6 +180,7 @@ class clients extends Thread
 		fi=new BufferedReader(new FileReader(fileName));
 		
 		
+		
 		while(a)
 		{
 			b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
@@ -187,21 +197,104 @@ class clients extends Thread
 			{
 				String[] words = line.split("@", 2);
           		if (words.length > 1 && words[1] != null)
-          		{ 
+          		{ 	
 	           		 words[1] = words[1].trim();
 	           		 words[0]=words[0].trim();
+	           		 String ko;
 	           		if (!words[1].isEmpty()) 
-	           		{
-	           			if(usere.containsKey(words[1]))
+	           		{	
+	           			if(words[1].equalsIgnoreCase("broadcast"))
+	           		
 	           			{
-	           					server.not.put("@"+words[1], notif);
+	           				
+           					server.broadcastNotif.put(clientName,0);
+        					
+        					saveFile(server.broadcastNotif,"broadcastNotification.txt");
+	           				//this.server.broadcastNotif=0;
+        					tempName=true;
+        					temporaryName="@"+words[1];
+        					if(!fileName.exists())
+        					{
+        						fileName.createNewFile();
+        						
+        						
+        					}
+        					
+        					while((ko=fi.readLine())!=null)
+        					{
+        						Pattern p=Pattern.compile("[@][\\w]+[@]"+words[1]+"[:]\\s[\\w|\\s]+[<][-]");
+        						Matcher m=p.matcher(ko);
+        						while(m.find())
+        						{
+        							
+        							if(m.group().length()!=0)
+        							{
+        								this.out.println(m.group().trim());
+        							}
+        						}
+        					}
+        					if((ko=fi.readLine())==null)
+        					{
+        						fi.close();
+        						fi=new BufferedReader(new FileReader(fileName));
+        					}
+        					
+			           		while(true)
+			           		{	
+			           			Map<String,Integer> c=(Map<String,Integer>)retrieveFile("broadcastNotification.txt");
+			           			if(c!=null)server.broadcastNotif=c;									           				
+			           			String lin=in.readLine();
+					           	if(lin.equalsIgnoreCase("exit"))
+					           	{	
+					           		
+					           		tempName=false;
+									temporaryName="";
+					         		break;
+					           	}
+					          	else
+					           	{
+			           			
+					          		fo.write(this.getClientName()+"@"+words[1]+": "+lin+" <- ");
+				           			fo.flush();
+				           			if(tempName==true)
+				           			{
+					           			for(clients z:usere.values())
+					           			{
+					           				if(z.temporaryName.equals("@broadcast"))
+						           			{
+						           				z.out.println(this.getClientName()+"@"+words[1]+": "+lin+" <- ");
+						           			}
+						           			else
+						           			{
+						           				server.broadcastNotif.put(z.clientName,server.broadcastNotif.get(z.clientName)+1);
+						           				saveFile(server.broadcastNotif,"broadcastNotification.txt");
+						           			}
+					           			}
+				           			}
+				           			synchronized(this)
+						           	{
+						           		availableClients(usere);
+						           	}
+					           					
+					           	}
+					           						           		
+				           				
+				           	}
+	           			}
+	           		
+	           		
+	           			else if(usere.containsKey(words[1]))
+	           			{
+	           					if(!words[1].equals("broadcast"))
+	           					{
+	           						server.not.put("@"+words[1], notif);
+	           					}
 	           					server.not.put(clientName,notif);
 	           					server.not.get(clientName).put("@"+words[1],0);
 	        					
 	        					saveFile(server.not,notify);
 	        					tempName=true;
 	        					temporaryName="@"+words[1];
-	        					String ko;
 	        					if(!fileName.exists())
 	        					{
 	        						fileName.createNewFile();
@@ -215,7 +308,7 @@ class clients extends Thread
 	        						Matcher m=p.matcher(ko);
 	        						while(m.find())
 	        						{
-	        							System.out.println("hi");
+	        							
 	        							if(m.group().length()!=0)
 	        							{
 	        								this.out.println(m.group().trim());
@@ -227,6 +320,7 @@ class clients extends Thread
 	        						fi.close();
 	        						fi=new BufferedReader(new FileReader(fileName));
 	        					}
+	        					
 				           		while(true)
 				           		{	
 				           			b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
@@ -234,7 +328,7 @@ class clients extends Thread
 				           			String lin=in.readLine();
 						           	if(lin.equalsIgnoreCase("exit"))
 						           	{	
-						           		System.out.println("exiting");
+						           		
 						           		tempName=false;
 										temporaryName="";
 						         		break;
@@ -277,22 +371,10 @@ class clients extends Thread
 					           				
 					           	}
 	           				}
-			        }
+	           			}
+	           		}
 			    }
-			}
-			      	
-	       else if(line.startsWith("#"))
-	       {
-				           		
-	    	   synchronized(this)
-	    	   {
-	    		   for(clients z:usere.values())
-	    		   {
-	    			   z.out.println(line);
-	    		   }
-				
-	    	   }
-	       }
+
 	       else if(line.equalsIgnoreCase("quit"))
 	       {
 	    	   

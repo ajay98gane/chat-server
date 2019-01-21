@@ -1,1 +1,1 @@
-@c@a: hi <- @c@a: hello <- @a@c: hi <- @c@a: hi <- @c@a: gf <- @c@a: fd <- @c@a: f <- @a@c: quit <- 
+@c@broadcast: hg <- @c@broadcast: gf <- @c@broadcast: gf <- @a@broadcast: gf <- @a@broadcast: gf <- 
