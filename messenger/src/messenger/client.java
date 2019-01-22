@@ -10,7 +10,6 @@ class client implements Runnable
 	private  static PrintStream out;
 	private static  Scanner input=new Scanner(System.in);
 	private static String name;
-	private static boolean hula=true;
 
 	public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException
 	{	
@@ -19,11 +18,14 @@ class client implements Runnable
 		s=new Socket("localhost",7878);
 		in=new BufferedReader(new InputStreamReader(s.getInputStream()));
 		out=new PrintStream(s.getOutputStream());
+		while(true)
+		{
+		System.out.println("Press 1 to sign up\nPress 2 to log in");
+		out.println(input.nextLine());
 		System.out.println(in.readLine());
 		 name=input.nextLine();
 		out.println(name);
-		while(hula)
-		{
+		
 			System.out.println(in.readLine());
 			String password=input.nextLine();
 			out.println(password);
@@ -31,7 +33,7 @@ class client implements Runnable
 			System.out.println(r);
 			if(r.startsWith("("))
 			{
-				hula=false;
+				break;
 			}
 		}
 		new Thread(new client()).start();

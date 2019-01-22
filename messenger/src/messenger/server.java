@@ -5,20 +5,24 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.net.*;
-public class server
+import java.io.Serializable;
+public class server implements Serializable
 {
 	private static ServerSocket ss=null;
 	private static Socket s=null;
 	private static String userName=null;
 	private static Map<String,clients> usere=new HashMap<>();
-	private static Map<String,String> check=new HashMap<>();
+	public static Map<String,userinfo> check=new HashMap<>();
 	public static Map<String,Map<String,Integer>> not=new HashMap<>();
 	public static Map<String,Integer> broadcastNotif=new HashMap<>();
+	protected final static String userpass="userpass.txt";
+	private static String login;
 
 	
 	private static PrintStream outa=null;
-	public static void main(String[] args) throws IOException
-	{
+	public static void main(String[] args) throws IOException,ClassNotFoundException,FileNotFoundException
+	{	Map<String,userinfo> c=(Map<String,userinfo>)clients.retrieveFile(userpass);
+		if(c!=null)check=c;
 		ss=new ServerSocket(7878);
 		System.out.println("searching for client");
 		while(true)
@@ -27,50 +31,123 @@ public class server
 			s=ss.accept();
 			BufferedReader in=new BufferedReader(new InputStreamReader(s.getInputStream()));
 			outa=new PrintStream(s.getOutputStream());
-			outa.println("enter a name");
-			userName=in.readLine();
-			outa.println("enter password");
-			String password=in.readLine();			
-			if(usere.containsKey(userName))
+			boolean aa=true;
+			while(aa)
 			{
-				if(check.get(userName).equals(password))
+				login=in.readLine();
+				switch(login)
 				{
-					clients a=new clients(s,usere,userName);
-					outa.println("(userName and password matched");
-					usere.put(userName, a);
-					a.start();
-					break;
+				case "1":{
+							outa.println("enter a name");
+							userName=in.readLine();
+							outa.println("enter password");
+							String password=in.readLine();outa.println("(username and password registered");
+							System.out.println("client "+userName+" connected");
+							check.put(userName, new userinfo(userName,password));
+							if(check.containsKey(userName))
+							{
+							check.get(userName).alterOnlineStatus("online");
+							clients.saveFile(check,userpass);
+							}
+							clients.saveFile(check,userpass);
+							clients sa=new clients(s,usere,userName);
+							usere.put(userName,sa);
+							broadcastNotif.put("@"+userName,0);
+							sa.start();	
+							aa=false;
+					
+						}break;
+				case "2":{
+							outa.println("enter a name");
+							userName=in.readLine();
+							outa.println("enter password");
+							String password=in.readLine();			
+							if(check.containsKey(userName))
+							{
+								if(check.get(userName).getPassword().equals(password))
+								{
+									clients a=new clients(s,usere,userName);
+									outa.println("(userName and password matched");
+									usere.put(userName, a);
+									if(check.containsKey(userName))
+									{
+									check.get(userName).alterOnlineStatus("online");
+									clients.saveFile(check, userpass);
+									}
+									//clients.saveFile(usere,listOfClients);
+									a.start();
+									aa=false;
+								}
+								else
+								{
+									outa.println("password did not match please re enter username and password");
+									continue;
+								}
+							}
+							else
+							{
+								outa.println("password did not match please re enter username and password");
+								continue;
+							}
+					
+						}break;
+				default:outa.println("enter a valid input");
 				}
-				else
-				{
-					outa.println("password did not match please re enter username and password");
-					continue;
-				}
-			}
-			else
-			{outa.println("(username and password registered");
-			System.out.println("client "+userName+" connected");
-			check.put(userName, password);	
-			clients sa=new clients(s,usere,userName);
-			usere.put(userName,sa);
-			broadcastNotif.put("@"+userName,0);
-			sa.start();
-			
-			
 			}
 		}
 	}
 }
 
 
-
-class clients extends Thread
+class userinfo implements Serializable
+{
+	private String password;
+	private String userName;
+	private String clientName;
+	private String status="hi i using zoho chat";
+	private String onlineStatus="online";
+	userinfo(String userName,String password)
+	{	this.userName=userName;
+		this.clientName="@"+userName;
+		this.password=password;
+	}
+	String getClientName()
+	{
+		return clientName;
+	}
+	String getUserName()
+	{
+		return userName;
+	}
+	String getStatus()
+	{
+		return status;
+	}
+	String getPassword()
+	{
+		return password;
+	}
+	void alterStatus(String status)
+	{
+		this.status=status;
+	}
+	String getOnlineStatus()
+	{
+		return onlineStatus;
+	}
+	void alterOnlineStatus(String onlineStatus)
+	{
+		this.onlineStatus=onlineStatus;
+	}
+}
+class clients extends Thread 
 {	
 	private  Socket s;
 	private Map<String,clients> usere=null;
 	private BufferedReader in;
 	private PrintStream out;
 	private String clientName="";
+	private String userName;
 	private boolean a=true;
 	private static Map<String,Map<String,Integer>> b;
 	private static String notify="notify.txt";
@@ -82,6 +159,8 @@ class clients extends Thread
 	private static	int count=1;
 	private String temporaryName="";
 	private String status="online";
+	private Map<String,Integer> aj;
+	//private String statusMsg;
 	//private  int server.broadcastNotif=0;
 	
 	
@@ -90,54 +169,50 @@ class clients extends Thread
 	{
 		this.s=s;
 		this.usere=threads;
+		this.userName=clientName;
 		this.clientName="@"+clientName;
-		a=true;
-
 	}
 	String getClientName()
 	{
 		return clientName;
 	}
 	
-	public void stap()
-	{
-		a=false;
-	}
 	 void availableClients(Map<String,clients> broadcast)throws FileNotFoundException,IOException,ClassNotFoundException
 	{
+		 aj=(Map<String,Integer>)retrieveFile("broadcastNotification.txt");
+		 if(aj!=null)server.broadcastNotif=aj;
+		 
 		 b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
 		if(b!=null)server.not=b;
+		Map<String,userinfo> c=(Map<String,userinfo>)retrieveFile(server.userpass);
+		if(c!=null)server.check=c;
 		 for(clients a:usere.values())
 		{
 			 
 			 if(a.tempName==false)
 			 {
 				a.out.println("(available clients are");
-				for(clients b:usere.values())
+				for(userinfo b:server.check.values())
 				{
-					if(b!=a)
+					if(!a.userName.equals(b.getUserName()))
 					{
 							if(server.not.get(a.getClientName())==null)
 							{
-								a.out.println("->"+b.getClientName()+"-(0)-("+b.status+")");
+								a.out.println("->"+b.getClientName()+"-(0)-("+b.getOnlineStatus()+")-("+server.check.get(b.getUserName()).getStatus()+")");
 							}
 							else if(server.not.get(a.getClientName()).get(b.getClientName())==null)
 							{
-								a.out.println("->"+b.getClientName()+"-(0)-("+b.status+")");
+								a.out.println("->"+b.getClientName()+"-(0)-("+b.getOnlineStatus()+")-("+server.check.get(b.getUserName()).getStatus()+")");
 							}
 							else
 							{	
-								a.out.println("->"+b.getClientName()+"-("+server.not.get(a.getClientName()).get(b.getClientName())+")-("+b.status+")");
+								a.out.println("->"+b.getClientName()+"-("+server.not.get(a.getClientName()).get(b.getClientName())+")-("+b.getOnlineStatus()+")-("+server.check.get(b.getUserName()).getStatus()+")");
 	
 							}
-					
 					}
-					
 				}
-					
 					a.out.println("->@broadcast-("+server.broadcastNotif.get(a.clientName)+")");
-
-				
+					a.out.println("->@status");
 			 }
 		}
 
@@ -181,7 +256,7 @@ class clients extends Thread
 		
 		
 		
-		while(a)
+		while(true)
 		{
 			b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
 			if(b!=null)server.not=b;
@@ -203,7 +278,12 @@ class clients extends Thread
 	           		 String ko;
 	           		if (!words[1].isEmpty()) 
 	           		{	
-	           			if(words[1].equalsIgnoreCase("broadcast"))
+	           			if(words[1].equalsIgnoreCase("status"))
+	           			{
+	           				 server.check.get(userName).alterStatus(in.readLine());
+	           				 saveFile(server.check,server.userpass);
+	           			}
+	           			else if(words[1].equalsIgnoreCase("broadcast"))
 	           		
 	           			{
 	           				
@@ -283,7 +363,7 @@ class clients extends Thread
 	           			}
 	           		
 	           		
-	           			else if(usere.containsKey(words[1]))
+	           			else if(server.check.containsKey(words[1]))
 	           			{
 	           					if(!words[1].equals("broadcast"))
 	           					{
@@ -340,30 +420,67 @@ class clients extends Thread
 					           			fo.flush();
 					           			if(tempName==true)
 					           			{
-						           			if(this.getClientName().equals(usere.get(words[1]).temporaryName))
-						           			{
-						           				usere.get(words[1]).out.println(this.getClientName()+"@"+words[1]+": "+lin+" <- ");
-						           			}
+					           				if(usere.containsKey(words[1]))
+					           				{
+							           			if(this.getClientName().equals(usere.get(words[1]).temporaryName))
+							           			{
+							           				usere.get(words[1]).out.println(this.getClientName()+"@"+words[1]+": "+lin+" <- ");
+							           			}
+					           				}
 						           			else
 						           			{
 						           				if(server.not.get("@"+words[1]).containsKey(clientName))
 												{	
 													server.not.get("@"+words[1]).put(clientName,(server.not.get("@"+words[1]).get(clientName)+1));
-													saveFile(server.not,notify);
-														
 												}
 												else
 												{
 													notif.put(clientName,count);
 													server.not.put("@"+words[1],notif);
-													saveFile(server.not,notify);
 
 												}
+						           				saveFile(server.not,notify);
 						           			}
 					           			}
 					           			synchronized(this)
 							           	{
-							           		availableClients(usere);
+					           				b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
+					           				if(b!=null)server.not=b;
+					           				Map<String,userinfo> c=(Map<String,userinfo>)retrieveFile(server.userpass);
+					           				if(c!=null)server.check=c;
+					           				if(usere.containsKey(words[1]))
+					           				{
+					           			 if(usere.get(words[1]).tempName==false)
+					        			 {
+					           				usere.get(words[1]).out.println("(available clients are");
+					        				for(clients b:usere.values())
+					        				{
+					        					if(b!=usere.get(words[1]))
+					        					{
+					        							if(server.not.get(usere.get(words[1]).getClientName())==null)
+					        							{
+					        								usere.get(words[1]).out.println("->"+b.getClientName()+"-(0)-("+b.status+")-("+server.check.get(b.userName).getStatus()+")");
+					        							}
+					        							else if(server.not.get(usere.get(words[1]).getClientName()).get(b.getClientName())==null)
+					        							{
+					        								usere.get(words[1]).out.println("->"+b.getClientName()+"-(0)-("+b.status+")-("+server.check.get(b.userName).getStatus()+")");
+					        							}
+					        							else
+					        							{	
+					        								usere.get(words[1]).out.println("->"+b.getClientName()+"-("+server.not.get(usere.get(words[1]).getClientName()).get(b.getClientName())+")-("+b.status+")-("+server.check.get(b.userName).getStatus()+")");
+					        	
+					        							}
+					        					
+					        					}
+					        					
+					        				}
+					        					
+					        				usere.get(words[1]).out.println("->@broadcast-("+server.broadcastNotif.get(usere.get(words[1]).clientName)+")");
+					        				usere.get(words[1]).out.println("->@status");
+
+					        				
+					        			 }
+					           				}
 							           	}
 						           					
 						           	}
@@ -379,8 +496,8 @@ class clients extends Thread
 	       {
 	    	   
 	    	   this.out.println("logging out");
-	    	   stap();
-	    	   status="offline";
+	    	   server.check.get(this.userName).alterOnlineStatus("offline");
+	    	   saveFile(server.check,server.userpass);
 	    	   tempName=true;
 	    	   this.out.println(line);
 	    	   synchronized(this)
@@ -391,7 +508,8 @@ class clients extends Thread
 	    	   in.close();
 	    	   out.close();
 	    	   s.close();
-	    	   this.stop();
+	    	   break;
+	    	   
 	    	   
 	       }
 	       else 
