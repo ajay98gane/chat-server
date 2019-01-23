@@ -1,4 +1,6 @@
 //package messenger;
+//available clients broadcast after shuting down server
+
 //something to end the client using quit
 import java.io.*;
 import java.util.*;
@@ -49,10 +51,10 @@ public class server implements Serializable
 							check.get(userName).alterOnlineStatus("online");
 							clients.saveFile(check,userpass);
 							}
-							clients.saveFile(check,userpass);
 							clients sa=new clients(s,usere,userName);
 							usere.put(userName,sa);
 							broadcastNotif.put("@"+userName,0);
+							clients.saveFile(broadcastNotif,"broadcastNotification.txt" );
 							sa.start();	
 							aa=false;
 					
@@ -74,7 +76,6 @@ public class server implements Serializable
 									check.get(userName).alterOnlineStatus("online");
 									clients.saveFile(check, userpass);
 									}
-									//clients.saveFile(usere,listOfClients);
 									a.start();
 									aa=false;
 								}
@@ -160,11 +161,6 @@ class clients extends Thread
 	private String temporaryName="";
 	private String status="online";
 	private Map<String,Integer> aj;
-	//private String statusMsg;
-	//private  int server.broadcastNotif=0;
-	
-	
-
 	clients(Socket s,Map<String,clients> threads,String clientName)
 	{
 		this.s=s;
@@ -179,13 +175,7 @@ class clients extends Thread
 	
 	 void availableClients(Map<String,clients> broadcast)throws FileNotFoundException,IOException,ClassNotFoundException
 	{
-		 aj=(Map<String,Integer>)retrieveFile("broadcastNotification.txt");
-		 if(aj!=null)server.broadcastNotif=aj;
-		 
-		 b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
-		if(b!=null)server.not=b;
-		Map<String,userinfo> c=(Map<String,userinfo>)retrieveFile(server.userpass);
-		if(c!=null)server.check=c;
+		
 		 for(clients a:usere.values())
 		{
 			 
@@ -248,6 +238,12 @@ class clients extends Thread
 	public void run()
 	{
 		try{
+			 aj=(Map<String,Integer>)retrieveFile("broadcastNotification.txt");
+			 if(aj!=null)server.broadcastNotif=aj;
+			 b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
+			if(b!=null)server.not=b;
+			Map<String,userinfo> c=(Map<String,userinfo>)retrieveFile(server.userpass);
+			if(c!=null)server.check=c;
 		in=new BufferedReader(new InputStreamReader(s.getInputStream()));
 		out=new PrintStream(s.getOutputStream());
 		fileName=new File("list.txt");
@@ -258,9 +254,6 @@ class clients extends Thread
 		
 		while(true)
 		{
-			b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
-			if(b!=null)server.not=b;
-			
 			synchronized(this)
 			{
 				availableClients(usere);
@@ -290,7 +283,6 @@ class clients extends Thread
            					server.broadcastNotif.put(clientName,0);
         					
         					saveFile(server.broadcastNotif,"broadcastNotification.txt");
-	           				//this.server.broadcastNotif=0;
         					tempName=true;
         					temporaryName="@"+words[1];
         					if(!fileName.exists())
@@ -321,8 +313,7 @@ class clients extends Thread
         					
 			           		while(true)
 			           		{	
-			           			Map<String,Integer> c=(Map<String,Integer>)retrieveFile("broadcastNotification.txt");
-			           			if(c!=null)server.broadcastNotif=c;									           				
+			           											           				
 			           			String lin=in.readLine();
 					           	if(lin.equalsIgnoreCase("exit"))
 					           	{	
@@ -403,8 +394,7 @@ class clients extends Thread
 	        					
 				           		while(true)
 				           		{	
-				           			b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
-				        			if(b!=null)server.not=b;									           				
+									           				
 				           			String lin=in.readLine();
 						           	if(lin.equalsIgnoreCase("exit"))
 						           	{	
@@ -426,71 +416,66 @@ class clients extends Thread
 							           			{
 							           				usere.get(words[1]).out.println(this.getClientName()+"@"+words[1]+": "+lin+" <- ");
 							           			}
-					           				}
-						           			else
-						           			{
-						           				if(server.not.get("@"+words[1]).containsKey(clientName))
-												{	
-													server.not.get("@"+words[1]).put(clientName,(server.not.get("@"+words[1]).get(clientName)+1));
-												}
-												else
-												{
-													notif.put(clientName,count);
-													server.not.put("@"+words[1],notif);
+							           			else
+							           			{
+							           				if(server.not.get("@"+words[1]).containsKey(clientName))
+													{	System.out.println("check");
+														server.not.get("@"+words[1]).put(clientName,(server.not.get("@"+words[1]).get(clientName)+1));
+													}
+													else
+													{	System.out.println("check2");
+														notif.put(clientName,count);
+														server.not.put("@"+words[1],notif);
 
-												}
-						           				saveFile(server.not,notify);
-						           			}
+													}
+							           				saveFile(server.not,notify);
+							           			}
+
+					           				}
+
+					           	
+					           		synchronized(this) 
+					           		{	
+					           			if(usere.containsKey(words[1]))
+					           			{
+							           		 if(usere.get(words[1]).tempName==false)
+							    			 {
+							           			usere.get(words[1]).out.println("(available clients are");
+							    				for(userinfo b:server.check.values())
+							    				{
+							    					if(!usere.get(words[1]).userName.equals(b.getUserName()))
+							    					{
+							    							if(server.not.get(usere.get(words[1]).getClientName())==null)
+							    							{	System.out.println("1st");
+	
+							    								usere.get(words[1]).out.println("->"+b.getClientName()+"-(0)-("+b.getOnlineStatus()+")-("+server.check.get(b.getUserName()).getStatus()+")");
+							    							}
+							    							else if(server.not.get(usere.get(words[1]).getClientName()).get(b.getClientName())==null)
+							    							{	System.out.println("2st");
+	
+							    								usere.get(words[1]).out.println("->"+b.getClientName()+"-(0)-("+b.getOnlineStatus()+")-("+server.check.get(b.getUserName()).getStatus()+")");
+							    							}
+							    							else
+							    							{	System.out.println("3st");
+	
+							    								usere.get(words[1]).out.println("->"+b.getClientName()+"-("+server.not.get(usere.get(words[1]).getClientName()).get(b.getClientName())+")-("+b.getOnlineStatus()+")-("+server.check.get(b.getUserName()).getStatus()+")");
+							    	
+							    							}
+							    					}
+							    				}
+							    				usere.get(words[1]).out.println("->@broadcast-("+server.broadcastNotif.get(usere.get(words[1]).clientName)+")");
+							    				usere.get(words[1]).out.println("->@status");
+							    			 }			
 					           			}
-					           			synchronized(this)
-							           	{
-					           				b=(Map<String,Map<String,Integer>>)retrieveFile(notify);
-					           				if(b!=null)server.not=b;
-					           				Map<String,userinfo> c=(Map<String,userinfo>)retrieveFile(server.userpass);
-					           				if(c!=null)server.check=c;
-					           				if(usere.containsKey(words[1]))
-					           				{
-					           			 if(usere.get(words[1]).tempName==false)
-					        			 {
-					           				usere.get(words[1]).out.println("(available clients are");
-					        				for(clients b:usere.values())
-					        				{
-					        					if(b!=usere.get(words[1]))
-					        					{
-					        							if(server.not.get(usere.get(words[1]).getClientName())==null)
-					        							{
-					        								usere.get(words[1]).out.println("->"+b.getClientName()+"-(0)-("+b.status+")-("+server.check.get(b.userName).getStatus()+")");
-					        							}
-					        							else if(server.not.get(usere.get(words[1]).getClientName()).get(b.getClientName())==null)
-					        							{
-					        								usere.get(words[1]).out.println("->"+b.getClientName()+"-(0)-("+b.status+")-("+server.check.get(b.userName).getStatus()+")");
-					        							}
-					        							else
-					        							{	
-					        								usere.get(words[1]).out.println("->"+b.getClientName()+"-("+server.not.get(usere.get(words[1]).getClientName()).get(b.getClientName())+")-("+b.status+")-("+server.check.get(b.userName).getStatus()+")");
-					        	
-					        							}
-					        					
-					        					}
-					        					
-					        				}
-					        					
-					        				usere.get(words[1]).out.println("->@broadcast-("+server.broadcastNotif.get(usere.get(words[1]).clientName)+")");
-					        				usere.get(words[1]).out.println("->@status");
+					           		}
 
-					        				
-					        			 }
-					           				}
-							           	}
-						           					
-						           	}
-						           						           		
-					           				
-					           	}
-	           				}
+						       	}  				
+					         }
 	           			}
 	           		}
-			    }
+	         	}
+          	}
+			}
 
 	       else if(line.equalsIgnoreCase("quit"))
 	       {
@@ -518,6 +503,7 @@ class clients extends Thread
 	       }	
 			
 		}
+		
 		}catch(IOException e){}
 		catch(ClassNotFoundException q) {}
 				
